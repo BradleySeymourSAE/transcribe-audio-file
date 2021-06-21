@@ -18,8 +18,7 @@ let GOOGLE_PROJECT_ID,
     audio = {},
     request = {},
     localStorage,
-    COMMAND,
-    config = {};
+    COMMAND;
 
 try 
 {
@@ -29,9 +28,6 @@ try
    FILEPATH = process.env["FILEPATH"];
    CLOUD_STORAGE_FILE = process.env["CLOUD_STORAGE_FILE"];
    COMMAND = process.env["COMMAND"];
-   config['encoding'] = process.env["FORMAT"];
-   config["sampleRateHertz"] = process.env["HERTZ"];
-   config["languageCode"] = process.env["LANG"];
    if (!fs.existsSync("speech"))
    {
        console.log(`Creating a new directory to store transcription documents`);
@@ -43,9 +39,12 @@ catch (e)
     console.error(`Environment configuration has not been setup correctly! ${e}`);
 }
 
+
 // Google Speech & Google Storage Client 
 const client = new googleSpeech.SpeechClient({ projectId: GOOGLE_PROJECT_ID, keyFilename: GOOGLE_APPLICATION_CREDENTIALS });
 const storage = new googleStorage.Storage({ projectId: GOOGLE_PROJECT_ID, keyFilename: GOOGLE_APPLICATION_CREDENTIALS });
+const config = { encoding: 'LINEAR16', sampleRateHertz: '22050', languageCode: 'en-US' };
+
 
 
 const Main = async () => {
@@ -69,14 +68,14 @@ const Main = async () => {
             request["audio"] = audio;
             request["config"] = config;
             
-            console.log(`Uploading to Google Cloud Storage: ${gcsUri}. ${STORAGE_URI}. [Command]: `, command);
+            console.log(`Uploading to Google Cloud Storage: ${gcsUri} [Command]: `, command);
             withHandleSpeechRequest(request);
         })
        .catch(err => console.error(`Error: `, err));
     }
     else
     {
-        console.error(`Please provide a valid command in your configuration file! `, `Valid Commands include "${VALID_COMMANDS.join(', ')}"`);
+        console.error(`Please provide a valid command in your configuration file! `, `Valid Commands include "${VALID_COMMANDS}"`);
     }
 };
 
@@ -101,20 +100,11 @@ const Main = async () => {
     const transcription = response.results
         .map(result => result.alternatives[0].transcript)
         .join('\n');
-    let output = process.env["OUTPUT"] ? process.env["OUTPUT"] : getRandomStringName(15);
-    
+   
+    let output = process.env["OUTPUT_FILENAME"];
 
     console.log(`Transcription has completed... `, `Saving transcription to ${output}!`);
     localStorage.writeDocument(output, transcription);
-  };
-
-  const getRandomStringName = (length) => {
-      var randomCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      var result = '';
-      for (var i = 0; i < length; i++)
-        result += randomCharacters.charAt(Math.floor(Math.random() * randomCharacters.length));
-        
-    return result;
   };
 
 
