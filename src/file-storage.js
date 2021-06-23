@@ -1,4 +1,4 @@
-const fs = require('fs');
+import fs from 'fs';
 
 
 class FileStorage {
@@ -84,5 +84,5 @@ class FileStorage {
     }
 }
 
-
-module.exports = FileStorage;
+export { FileStorage };
+export default FileStorage;

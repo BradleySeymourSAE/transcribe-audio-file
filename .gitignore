@@ -1,6 +1,8 @@
 *.wav
 .env
 *.mov
+*.csv
+storage-example.txt
 
 /node_modules
 node_modules
@@ -10,15 +12,21 @@ dist/
 dist
 build
 
-config
+src/tests/*
+src/tests
+src/config.js
+src/test.txt
+src/bucket-policy.json
+src/Storage/*
+
 config/*
-Storage/*
 Storage/speech/*
 
 ### Firebase Patch ###
 .runtimeconfig.json
 .firebase/
 
+aws-credentials.csv
 service_key.json
 google-credentials.json
 ./google-credentials.json

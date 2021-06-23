@@ -1,25 +1,47 @@
 {
   "name": "audio-to-text",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "1.0.1",
+  "description": "Transcribes audio from a local file using AWS API",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node ./index.js",
-    "dev": "nodemon ./index.js"
+    "preinstall": "npx npm-force-resolutions",
+    "postinstall": "npm run build",
+    "watch": "parcel src/index.js --target node",
+    "build": "parcel build src/index.js --target node --detailed-report",
+    "once": "npm run build && babel-node src/index.js",
+    "start": "npm run build && babel-node src/index.js",
+    "dev": "nodemon --exec babel-node src/index.js"
+  },
+  "xo": {
+    "space": true
+  },
+  "engines": {
+    "node": "14"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-transcribe": "^3.18.0",
     "@google-cloud/speech": "^4.5.2",
     "@google-cloud/storage": "^5.8.5",
+    "aws-sdk": "^2.932.0",
+    "cors": "^2.8.5",
+    "docx": "^6.0.3",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "fluent-ffmpeg": "^2.1.2",
     "lodash": "^4.17.21",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "nodemon": "^2.0.7"
+    "@babel/cli": "^7.14.5",
+    "@babel/core": "^7.14.6",
+    "@babel/node": "^7.14.7",
+    "@babel/preset-env": "^7.14.7",
+    "nodemon": "^2.0.7",
+    "parcel-bundler": "^1.12.5",
+    "xo": "^0.40.3"
   }
 }
