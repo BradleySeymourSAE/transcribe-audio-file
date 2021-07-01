@@ -1,5 +1,7 @@
 import { TranscribeClient } from "@aws-sdk/client-transcribe";
-let config = require('dotenv').config().parsed;
+import config from './config';
+
+
 
 let region = config["AWS_STORAGE_REGION"];
 

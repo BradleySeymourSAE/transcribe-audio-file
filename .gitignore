@@ -18,6 +18,7 @@ src/config.js
 src/test.txt
 src/bucket-policy.json
 src/Storage/*
+src/uploads/*
 
 config/*
 Storage/speech/*
