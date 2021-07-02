@@ -13,7 +13,6 @@ dist
 build
 
 src/tests/*
-src/tests
 src/config.js
 src/test.txt
 src/bucket-policy.json
