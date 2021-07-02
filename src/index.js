@@ -2,14 +2,17 @@ import _ from 'lodash';
 import fs from 'fs';
 import path from 'path';
 import { transcriptionClient } from './transcription-client';
-import { StartTranscriptionJobCommand } from '@aws-sdk/client-transcribe';
 import express from 'express';
 import './bucket-policy.json';
 require('dotenv').config();
 import config from './config';
 import { uploadToStorage } from './lib/upload-to-storage';
 import cors from 'cors';
+import { StartTranscriptionJobCommand } from '@aws-sdk/client-transcribe';
+import FileStorage from './file-storage';
 
+
+const localStorage = new FileStorage("transcriptions");
 
 
 let desiredDirectory = config["DIRECTORY"] ? config["DIRECTORY"] : process.env["DIRECTORY"];
@@ -32,7 +35,7 @@ async function Initialize()
     }
     else
     {
-        console.log(`Folder ${DIRECTORY} already exists in ${m_UploadDirectoryPath}.. Skipping!`);
+        console.log(`Folder ${desiredDirectory} already exists in ${m_UploadDirectoryPath}.. Skipping!`);
     }
 
     try
@@ -52,20 +55,38 @@ async function Initialize()
     console.log(`Attempting to upload file:\nFile:${fileName}\nAWS Storage: ${storageBucket}\nRegion: [${region}]\nDirectory: ${directory}`);
 
     uploadToStorage(storageBucket, "", directory)
-    .then(response => {
+    .then(async response => {
         console.log(`Uploading to S3: `, response);
 
-        let params = {};
-        let mediaFileUrl = `s3://${storageBucket}.s3.${region}.amazonaws.com/${fileName}.${extension}`;
-        params["TranscriptionJobName"] = config["TRANSCRIPTION_JOB_TITLE"];
-        params["LanguageCode"] = config["LANG"];
-        params["MediaFormat"] = extension;
-        params.Media["MediaFileUri"] = mediaFileUrl;
+        let fileBucketURL = `https://${storageBucket}.s3.${region}.amazonaws.com/${fileName}.${extension}`;
 
-        console.log(`Parameters: ${params}`);
-    })
-    .catch(err => {
-        console.error(`Something went wrong: Error: `, `${err}`);
+        const params = {
+            TranscriptionJobName: config["TRANSCRIPTION_JOB_TITLE"],
+            LanguageCode: config["LANG"],
+            MediaFormat: config["EXT"],
+            Media: {
+                MediaFileUri: fileBucketURL
+            },
+        };
+
+
+
+    try 
+    { 
+         const transcriptionResult = await transcriptionClient.send(
+             new StartTranscriptionJobCommand(params)
+         );
+
+         let l_FileId = config["TRANSCRIPTION_JOB_TITLE"];
+
+         console.log(`Transcription Success: `, transcriptionResult);
+
+         localStorage.writeFile(l_FileId, transcriptionResult);
+    }
+    catch (error)
+    {
+        console.error(`There was an error transcribing that audio! Error: `, error);
+    }
     });
 
 
