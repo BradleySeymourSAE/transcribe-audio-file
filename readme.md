@@ -1,8 +1,8 @@
 
 
 
-# Google Speech Upload & Transcribe 
-### Uploads a Local Audio WAV file to Google Cloud Stroage
+# AWS Upload & Transcribe Local Files 
+### Uploads Local Audio files to AWS & Transcribes them
 ### _IMPORTANT NOTE_ 
 
 > If you are using Google Speech Client & wanting to upload large file sizes, make sure that you are not > uploading 3-4 hour long audio clips to transcribe as this can be quite expensive
