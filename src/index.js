@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import fs from 'fs';
 import path from 'path';
-import { transcriptionClient } from './transcription-client';
+import { transcriptionClient } from './lib/transcription-client';
 import { StartTranscriptionJobCommand } from '@aws-sdk/client-transcribe';
 import { uploadToStorage } from './lib/upload-to-storage';
 import express from 'express';
