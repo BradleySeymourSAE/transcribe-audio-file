@@ -2,99 +2,106 @@ import _ from 'lodash';
 import fs from 'fs';
 import path from 'path';
 import { transcriptionClient } from './transcription-client';
-import express from 'express';
-import './bucket-policy.json';
-require('dotenv').config();
-import config from './config';
-import { uploadToStorage } from './lib/upload-to-storage';
-import cors from 'cors';
 import { StartTranscriptionJobCommand } from '@aws-sdk/client-transcribe';
+import { uploadToStorage } from './lib/upload-to-storage';
+import express from 'express';
+import cors from 'cors';
 import FileStorage from './file-storage';
+import './bucket-policy.json';
+const config = require('dotenv').config().parsed;
 
 
 const localStorage = new FileStorage("transcriptions");
-
-
-let desiredDirectory = config["DIRECTORY"] ? config["DIRECTORY"] : process.env["DIRECTORY"];
-const m_UploadDirectoryPath = path.join(__dirname, desiredDirectory);
-
-
+const m_UploadDirectoryPath = path.join(__dirname, "uploads");
+let storageBucket = process.env["AWS_STORAGE_BUCKET"];
+let region = process.env["AWS_STORAGE_REGION"];
 
 async function Initialize()
 {
     const app = express();
-    app.use(cors());
-    app.listen(5000, () => console.log(`Server listening on port 5000`));
-
-
-    let storageBucket, directory, extension, region, fileName;
+  
+    const { PORT: port, HOST: host, NODE_ENV: environment } = config;
+    
+    app.use(cors(true));
+    app.listen(port, () => console.log(`Server started running at ${host}:${port} in ${environment} mode.`));
+   
+    // Check if the uploads directory exists 
     if (!fs.existsSync(m_UploadDirectoryPath))
     {
+        // If it doesnt, create one 
         fs.mkdirSync(m_UploadDirectoryPath);
         console.log(`Creating directory ${DIRECTORY} in ${m_UploadDirectoryPath}`);
     }
-    else
-    {
-        console.log(`Folder ${desiredDirectory} already exists in ${m_UploadDirectoryPath}.. Skipping!`);
-    }
 
-    try
-    {
-        storageBucket = config["AWS_STORAGE_BUCKET"];
-        extension = config["EXT"];
-        region = config["AWS_STORAGE_REGION"];
-        fileName = config["FILE"];
-        directory = m_UploadDirectoryPath + `\\${fileName}.${extension}`;
-    } 
-    catch (error)
-    {
-        console.error(`Please setup the configuration environment variables correctly..`, error);
-    }
-    
-
-    console.log(`Attempting to upload file:\nFile:${fileName}\nAWS Storage: ${storageBucket}\nRegion: [${region}]\nDirectory: ${directory}`);
-
-    uploadToStorage(storageBucket, "", directory)
-    .then(async response => {
-        console.log(`Uploading to S3: `, response);
-
-        let fileBucketURL = `https://${storageBucket}.s3.${region}.amazonaws.com/${fileName}.${extension}`;
-
-        const params = {
-            TranscriptionJobName: config["TRANSCRIPTION_JOB_TITLE"],
-            LanguageCode: config["LANG"],
-            MediaFormat: config["EXT"],
-            Media: {
-                MediaFileUri: fileBucketURL
-            },
-        };
-
-
-
-    try 
-    { 
-         const transcriptionResult = await transcriptionClient.send(
-             new StartTranscriptionJobCommand(params)
-         );
-
-         let l_FileId = config["TRANSCRIPTION_JOB_TITLE"];
-
-         console.log(`Transcription Success: `, transcriptionResult);
-
-         localStorage.writeFile(l_FileId, transcriptionResult);
-    }
-    catch (error)
-    {
-        console.error(`There was an error transcribing that audio! Error: `, error);
-    }
+ 
+   // Loop through all the audio files found in the directory 
+   const audioFiles = fs.readdirSync(m_UploadDirectoryPath, (err, files) => {
+       if (err) return console.error(`There was an error locating audio files in ${m_UploadDirectoryPath}... Error: ${err}`);
+       else
+       {
+         for (const file of files)
+            return file;
+       }
     });
 
+    // Loop through each of the audio files found 
+    for (var i = 0; i < audioFiles.length; i++)
+    {
+        let directory, extension, fileName;
+            
+            try
+            {
+                fileName = audioFiles[i].split(".")[0]; // exampleaudio
+                extension = audioFiles[i].split(".")[1]; // wav 
+                directory = m_UploadDirectoryPath + `\\${fileName}.${extension}`; // src\uploads\filename.ext
+            } 
+            catch (error)
+            {
+                console.error(`Please setup the configuration environment variables correctly..`, error);
+            }
 
+            console.log(`Attempting to upload...\nFile: ${fileName}\nAWS Storage: ${storageBucket}\nRegion: [${region}]\nDirectory: ${directory}`);
+
+            // Begin uploading the file to AWS storage 
+            uploadToStorage(storageBucket, "", directory)
+            .then(async response => {
+                console.log(`Uploading to AWS S3 Storage Bucket...`, response);
+                let fileBucketURL = `https://${storageBucket}.s3.${region}.amazonaws.com/${fileName}.${extension}`;
+
+                // Set the transcription job params 
+                const params = {
+                    TranscriptionJobName: `${fileName}-transcription`,
+                    LanguageCode: config["LANG"],
+                    MediaFormat: extension,
+                    Media: {
+                        MediaFileUri: fileBucketURL
+                    },
+                };
+
+            try 
+            { 
+                // Start the transcription job 
+                const transcriptionResult = await transcriptionClient.send(new StartTranscriptionJobCommand(params));
+                let l_FileId = params["TranscriptionJobName"];
+
+                console.log(`Successfully transcribed file: ${l_FileId}...\nYou can download the transcribed file from here ${params.Media["MediaFileUri"]}`);
+                console.log(`Writing transcription results to ${__dirname + "\\Storage\\transcriptions"}`);
+                // Write the response status to local directory src/Storage/transcriptions/transcription-result.json 
+                localStorage.writeFile(l_FileId, transcriptionResult);
+            }
+            catch (error)
+            {
+                console.error(`There was an error transcribing that audio file. If the error persists please contact support on discord. -Ventiii-VIPs-#3108`, error);
+            }
+        });
+    }
+
+    // Return express server  (app) 
     return app;
 }
 
 
-
+// Initializes the express server 
 Initialize();
 
 
